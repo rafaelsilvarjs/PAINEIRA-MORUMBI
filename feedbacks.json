@@ -1,0 +1,69 @@
+[
+  {
+    "id": "fb-1775416821524-w3ghut",
+    "createdAt": "2026-04-05T19:20:21.524Z",
+    "nome": "Amanda da Silva Sobral",
+    "cargo": "Assistente",
+    "area": "RH",
+    "gestor": "Raquel",
+    "dataDesligamento": "2026-03-05",
+    "tempoEmpresa": "2 anos e 3 meses",
+    "motivoSaida": "DEMISSAO",
+    "expectativas": "Superou",
+    "desenvolvimento": "muito bom, sair de estagiário para assistente",
+    "ambiente": "excelente.",
+    "clube": "excelente",
+    "beneficios": {
+      "Vale alimentacao": {
+        "uso": "Sim",
+        "expectativa": "Sim"
+      },
+      "Plano de saude": {
+        "uso": "Sim",
+        "expectativa": "Sim"
+      },
+      "Plano odontologico": {
+        "uso": "Sim",
+        "expectativa": "Sim"
+      },
+      "Refeicao no local": {
+        "uso": "Sim",
+        "expectativa": "Sim"
+      },
+      "Parceria institucional": {
+        "uso": "Nao",
+        "expectativa": "Sim"
+      },
+      "Total Pass": {
+        "uso": "Nao",
+        "expectativa": "Sim"
+      },
+      "Convenio SESC": {
+        "uso": "Sim",
+        "expectativa": "Sim"
+      },
+      "Estacionamento": {
+        "uso": "Nao",
+        "expectativa": "Sim"
+      },
+      "Emprestimo consignado": {
+        "uso": "Nao",
+        "expectativa": "Sim"
+      }
+    },
+    "beneficiosObservacao": "tudo perfeito.",
+    "salarioSatisfacao": 4,
+    "empresaSatisfacao": 5,
+    "liderancaSatisfacao": 5,
+    "estruturaSatisfacao": 4,
+    "gestorFlexibilidade": 5,
+    "gestorAtencao": 5,
+    "gestorProfissionalismo": 5,
+    "gestorFeedback": 5,
+    "gestorRecomendacao": "Sim",
+    "recomendariaEmpresa": "Sim",
+    "voltariaTrabalhar": "Sim",
+    "observacoes": "melhor lugar que já trabalhei.",
+    "melhoriaSugestao": "melhor local que já trabalhei."
+  }
+]
