@@ -1,12 +1,27 @@
+require('dotenv').config();
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const publicDir = path.join(__dirname, 'public');
 const dataFile = path.join(__dirname, 'feedbacks.json');
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseTable = process.env.SUPABASE_TABLE || 'exit_feedbacks';
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseServiceRoleKey);
+const supabase = hasSupabaseConfig
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    })
+  : null;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -18,7 +33,7 @@ function ensureDataFile() {
   }
 }
 
-function readFeedbacks() {
+function readFeedbacksFromFile() {
   ensureDataFile();
 
   try {
@@ -30,7 +45,7 @@ function readFeedbacks() {
   }
 }
 
-function writeFeedbacks(feedbacks) {
+function writeFeedbacksToFile(feedbacks) {
   fs.writeFileSync(dataFile, JSON.stringify(feedbacks, null, 2));
 }
 
@@ -150,6 +165,63 @@ function buildSummary(feedbacks) {
   };
 }
 
+async function readFeedbacks() {
+  if (!supabase) {
+    return readFeedbacksFromFile();
+  }
+
+  const { data, error } = await supabase
+    .from(supabaseTable)
+    .select('id, created_at, payload')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Erro ao ler feedbacks do Supabase:', error);
+    throw new Error('Nao foi possivel ler os feedbacks.');
+  }
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    createdAt: row.created_at,
+    ...((row.payload && typeof row.payload === 'object') ? row.payload : {})
+  }));
+}
+
+async function createFeedback(payload) {
+  const feedback = normalizeFeedback(payload);
+
+  if (!supabase) {
+    const feedbacks = readFeedbacksFromFile();
+    feedbacks.push(feedback);
+    writeFeedbacksToFile(feedbacks);
+    return {
+      feedback,
+      feedbacks
+    };
+  }
+
+  const { id, createdAt, ...feedbackPayload } = feedback;
+  const row = {
+    id,
+    created_at: createdAt,
+    payload: feedbackPayload
+  };
+
+  const { error } = await supabase.from(supabaseTable).insert(row);
+
+  if (error) {
+    console.error('Erro ao salvar feedback no Supabase:', error);
+    throw new Error('Nao foi possivel salvar o feedback.');
+  }
+
+  const feedbacks = await readFeedbacks();
+
+  return {
+    feedback,
+    feedbacks
+  };
+}
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'form.html'));
 });
@@ -162,26 +234,40 @@ app.get('/detalhamento', (req, res) => {
   res.sendFile(path.join(publicDir, 'details.html'));
 });
 
-app.post('/submit-feedback', (req, res) => {
+app.post('/submit-feedback', async (req, res) => {
   if (!String(req.body?.dataDesligamento || '').trim()) {
     return res.status(400).send('Data de desligamento e obrigatoria.');
   }
 
-  const feedbacks = readFeedbacks();
-  const feedback = normalizeFeedback(req.body);
-
-  feedbacks.push(feedback);
-  writeFeedbacks(feedbacks);
-
-  res.redirect('/dashboard');
+  try {
+    await createFeedback(req.body);
+    res.redirect('/dashboard');
+  } catch (error) {
+    res.status(500).send(error.message || 'Erro interno ao salvar feedback.');
+  }
 });
 
-app.get('/api/feedbacks', (req, res) => {
-  res.json(readFeedbacks());
+app.get('/api/feedbacks', async (req, res) => {
+  try {
+    res.json(await readFeedbacks());
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Erro interno ao carregar feedbacks.'
+    });
+  }
 });
 
-app.get('/api/feedbacks/summary', (req, res) => {
-  res.json(buildSummary(readFeedbacks()));
+app.get('/api/feedbacks/summary', async (req, res) => {
+  try {
+    const feedbacks = await readFeedbacks();
+    res.json(buildSummary(feedbacks));
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Erro interno ao carregar resumo.'
+    });
+  }
 });
 
 app.get('/health', (req, res) => {
@@ -191,7 +277,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.post('/api/feedbacks', (req, res) => {
+app.post('/api/feedbacks', async (req, res) => {
   if (!String(req.body?.dataDesligamento || '').trim()) {
     return res.status(400).json({
       success: false,
@@ -199,17 +285,20 @@ app.post('/api/feedbacks', (req, res) => {
     });
   }
 
-  const feedbacks = readFeedbacks();
-  const feedback = normalizeFeedback(req.body);
+  try {
+    const { feedback, feedbacks } = await createFeedback(req.body);
 
-  feedbacks.push(feedback);
-  writeFeedbacks(feedbacks);
-
-  res.status(201).json({
-    success: true,
-    feedback,
-    summary: buildSummary(feedbacks)
-  });
+    res.status(201).json({
+      success: true,
+      feedback,
+      summary: buildSummary(feedbacks)
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Erro interno ao salvar feedback.'
+    });
+  }
 });
 
 ensureDataFile();
