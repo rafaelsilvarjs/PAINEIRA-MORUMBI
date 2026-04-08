@@ -8,9 +8,7 @@ const BENEFITS = [
   'Refeicao no local',
   'Parceria institucional',
   'Total Pass',
-  'Convenio SESC',
-  'Estacionamento',
-  'Emprestimo consignado'
+  'Convenio SESC'
 ];
 
 const AREAS = [
